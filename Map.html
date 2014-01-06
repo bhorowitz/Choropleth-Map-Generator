@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CT Splash Students: Splash at Yale</title>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.5/leaflet.css" />
+  <style>
+
+.info {
+padding: 6px 8px;
+font: 14px/16px Arial, Helvetica, sans-serif;
+background: white;
+background: rgba(255,255,255,0.8);
+box-shadow: 0 0 15px rgba(0,0,0,0.2);
+border-radius: 5px;
+}
+.info h4 {
+margin: 0 0 5px;
+color: #777;
+}
+
+
+  .legend {
+  text-align: left;
+  line-height: 18px;
+  color: #555;
+  }
+  .legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.7;
+  }
+
+body {
+    padding-left: 0px;
+    padding-right: 0px;
+  margin: 0;
+    height: 100%;
+}
+ 
+html {
+height: 100%;
+}
+ 
+ 
+/* Map */
+#map {
+position: absolute;
+float: left;
+top: 1%;
+height: 98%;
+width: 100%;
+z-index: 1;
+}
+
+  </style>
+
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="http://cdn.leafletjs.com/leaflet-0.4.5/leaflet.js"></script>    
+  <script src="CT_NOW.js"></script>
+<script src="towns.js"></script>
+  
+
+
+  <script>
+
+function get_random_color() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.round(Math.random() * 15)];
+    }
+    return color;
+}
+
+
+
+  var map = L.map('map').setView([41.55,-72.594], 10);
+  L.tileLayer('http://{s}.www.toolserver.org/tiles/bw-mapnik/{z}/{x}/{y}.png').addTo(map); //will be our basemap.
+function onEachFeature(feature, layer) {
+    if (feature.properties) {
+        layer.bindPopup("<b>" + feature.properties.street + "</b> is " + feature.properties.length + "km long.");
+    }
+}
+var streets = new L.geoJson(CT, {
+onEachFeature: onEachFeature
+}).addTo(map);
+
+
+function style(feature) {
+return {
+weight: 10,
+opacity: 0.1,
+color: 'white',
+dashArray: '2',
+fillOpacity: 0.3,
+fillColor: getColor(feature.properties.STUDENTS)
+};
+}
+
+function style_towns(feature) {
+return {
+weight: 10,
+opacity: 0.2,
+color: 'white',
+dashArray: '2',
+fillOpacity: 0.01,
+fillColor: get_random_color()
+};
+}
+
+
+
+// control that shows state info on hover
+var info = L.control();
+
+info.onAdd = function (map) {
+this._div = L.DomUtil.create('div', 'info');
+this.update();
+return this._div;
+};
+
+info.update = function (props) {
+this._div.innerHTML = '<h4>Yale Splash Students by Census Tract</h4>' +  (props ?
+'<b> Tract: ' + props.NAME + ' in ' + props.TOWN_NAME + '</b><br />' + props.STUDENTS + ' Splash students <br /> ' + String( Math.floor(Number(props.DEMO[1]) + Number(props.DEMO[2])/2)) + ' high/middle school students (estimate) <br />' 
+: 'Hover over a census tract for more info');
+};
+
+info.addTo(map);
+
+function getColor(d) {
+return d > 12 ? '#800026' :
+       d > 10  ? '#BD0026' :
+       d > 8  ? '#E31A1C' :
+       d > 6  ? '#FC4E2A' :
+       d > 4   ? '#FD8D3C' :
+       d > 2   ? '#FEB24C' :
+       d > 0   ? '#FED976' :
+       '#FFEDA0';
+    }
+
+function get_random_color() {
+    var letters = '0123456789ABCDEF'.split('');
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.round(Math.random() * 15)];
+    }
+    return color;
+}
+
+
+
+
+var streets = new L.geoJson(CT, {
+                style: style,
+                onEachFeature: onEachFeature
+        }).addTo(map);
+
+var streets = new L.geoJson(CT_Towns, {
+                style: style_towns,
+                
+        }).addTo(map);
+
+
+
+
+function highlightFeature(e) {
+var layer = e.target;
+
+layer.setStyle({
+weight: 5,
+color: '#666',
+dashArray: '',
+fillOpacity: 0.7
+});
+
+if (!L.Browser.ie && !L.Browser.opera) {
+layer.bringToFront();
+}
+
+info.update(layer.feature.properties);
+}
+
+var geojson;
+
+function resetHighlight(e) {
+geojson.resetStyle(e.target);
+info.update();
+}
+
+function zoomToFeature(e) {
+map.fitBounds(e.target.getBounds());
+
+map.setZoom(11);
+}
+
+function onEachFeature(feature, layer) {
+layer.on({
+mouseover: highlightFeature,
+mouseout: resetHighlight,
+click: zoomToFeature
+});
+}
+
+geojson = L.geoJson(CT, {
+style: style,
+onEachFeature: onEachFeature
+}).addTo(map);
+
+
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function (map) {
+
+var div = L.DomUtil.create('div', 'info legend'),
+grades = [0, 2, 4, 6, 8, 10, 12, 14],
+labels = [],
+from, to;
+
+for (var i = 0; i < grades.length; i++) {
+from = grades[i];
+to = grades[i + 1];
+
+labels.push(
+'<i style="background:' + getColor(from + 1) + '"></i> ' +
+from + (to ? '&ndash;' + to : '+'));
+}
+
+div.innerHTML = labels.join('<br>');
+return div;
+};
+
+legend.addTo(map);
+
+
+
+
+	</script>
+ </body>
+</html>
