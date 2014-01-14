@@ -84,7 +84,7 @@ def parseCensusDemographics(csv):
             CenTract = l[i][0]
         else:
             CenTract = re.findall(r'[-+]?[0-9]*\.?[0-9]+.', l[i][0])
-        #print CenTract
+        #currently records racial demographics in case you want an "under-represented minority stat"
         pall = l[i][1]
         p10 = l[i][2]
         p15 = l[i][3]
@@ -119,25 +119,21 @@ def cpPoly(poly):
 def convert_l(l):
     k = numpy.array(l)
     k = numpy.array(k[0])
-    #print k.shape                                                                                                                                  
     if k.shape[0]<3:
         k = numpy.array(k[0])
-        #print k.shape     
     return k
 
 def boundingBox(polygon):
     #Finds bounding box of each census tract to speed up PiP algorithm.
     k = numpy.array(polygon)
     k = numpy.array(k[0])
-    #print k.shape
     if k.shape[0]<3:
         k = numpy.array(k[0])
-        #print k.shape
+   
     min_lat = k[:,0].min()
     max_lat = k[:,0].max()
     min_lon = k[:,1].min()
     max_lon = k[:,1].max()
-    #return [[min_lat,min_lon],[min_lat,max_lon],[max_lat,max_lon],[max_lat,min_lon],[min_lat,min_long]]
     return (min_lat,min_lon,max_lat,max_lon)
 
 def get_coords(add,diction):
@@ -151,7 +147,6 @@ def get_coords(add,diction):
             diction[line] = getAddressCoords(line)
         except:
             print "error with ", line
-        #print lat, lon
     return diction
 
 def save_coords(diction):
@@ -195,20 +190,15 @@ def allocate_towns(j,q):
         (lat,lon) = cpPoly(convert_l(j["features"][l]["geometry"]["coordinates"]))
         for i in range(0,len(q["features"])-1):
             (min_lat,min_lon,max_lat,max_lon) = q["features"][i]["geometry"]["bounding"] # (min_lat,min_lon,max_lat,max_lon)
-            #print (min_lat,min_lon,max_lat,max_lon), lat, lon #(-72.432851999999997, 41.255398, -72.347426999999996, 41.342337000000001) 41.5952734 -72.6978515
             if lat<max_lat and lat>min_lat and lon<max_lon and lon>min_lon:
-                #print (min_lat,min_lon,max_lat,max_lon), lat, lon, i
                 if pointPoly(lat,lon,convert_l(q["features"][i]["geometry"]["coordinates"])):
-#                    print "INNNN", j["features"][l]["properties"]["DEMO"][0]
                     j["features"][l]["properties"]["TOWN_NAME"] = q["features"][i]["properties"]["NAMELSAD10"]
                     flag = 1
             else:
                 continue
         if flag == 0:
             print l
-    print water
     water.reverse()
-    print water
     for w in water:
         print "deleting", j["features"][w]["properties"]["NAME"]
         del j["features"][w]
@@ -252,18 +242,8 @@ def main(j, ct_ref, address_file, q, diction):
     j = allocate_students(j_init,add,ct_ref,diction)
     j_final = allocate_towns(j,q)
     json.dump(j_final, open('out.json', 'w'))
-    return
 
 ct_ref = parseCensusDemographics(csv)
-#add = open('./addresses')
-
-# Shape Files -> geoJSON
-# Student Info -> DB -> Lat/Long
-# Census Info -> Census Dict
-
-# Allocate Students
-# Allocate Towns
-# Export to Suitable Format for JS
 
 
 
